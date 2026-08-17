@@ -58,11 +58,23 @@ def get_pipe(vram_mode="low", progress_cb=None):
         if vram_mode == "low":
             if progress_cb:
                 progress_cb(0.5, "正在配置低显存逐层加载(首次约需数分钟)...")
+            # low_cpu_mem_usage=True:跳过 pin_memory(),否则 pin 全部权重需复制
+            # 等量系统内存并计入 WDDM 显存 commit,cudaHostAlloc 失败会被误报为 CUDA OOM
             apply_group_offloading(
                 pipe.language_model,
                 onload_device=torch.device("cuda"),
                 offload_type="leaf_level",
                 use_stream=True,
+                low_cpu_mem_usage=True,
+            )
+            # transformer(Flow Matching 主力)按块搬运,避免整体驻留 GPU 导致生成阶段 OOM
+            apply_group_offloading(
+                pipe.transformer,
+                onload_device=torch.device("cuda"),
+                offload_type="block_level",
+                num_blocks_per_group=1,
+                use_stream=True,
+                low_cpu_mem_usage=True,
             )
         with _lock:
             _state["pipe"] = pipe
@@ -89,14 +101,19 @@ def generate(caption, lyrics, audio_duration=60.0, seed=-1, num_inference_steps=
         seed = int(torch.randint(0, 2**31 - 1, (1,)).item())
     generator = torch.Generator("cuda").manual_seed(int(seed))
 
-    result = pipe(
-        prompt=caption,
-        lyrics=lyrics,
-        audio_duration=float(audio_duration),
-        num_inference_steps=int(num_inference_steps),
-        generator=generator,
-        output="audios",
-    )
+    try:
+        result = pipe(
+            prompt=caption,
+            lyrics=lyrics,
+            audio_duration=float(audio_duration),
+            num_inference_steps=int(num_inference_steps),
+            generator=generator,
+            output="audios",
+        )
+    except torch.cuda.OutOfMemoryError:
+        # OOM 后显存上下文已损坏,必须卸载管线,下次生成重新加载
+        unload()
+        raise RuntimeError("CUDA 显存不足:请缩短生成时长,或关闭占用显存的程序后重试")
     audio = result[0]
     if isinstance(audio, torch.Tensor):
         audio = audio.float().cpu().numpy()

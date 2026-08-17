@@ -159,6 +159,8 @@ def generate(payload: dict):
                 "url": f"/audio/{os.path.basename(saved)}" if saved else None,
             })
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             emit({"type": "error", "message": str(e)})
         finally:
             try:
