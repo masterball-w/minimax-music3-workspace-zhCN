@@ -17,6 +17,7 @@ const els = {
   numInferenceSteps: $("numInferenceSteps"), stepsVal: $("stepsVal"),
   seed: $("seed"), vramMode: $("vramMode"),
   previewBtn: $("previewBtn"), captionPreview: $("captionPreview"),
+  saveBtn: $("saveBtn"), loadBtn: $("loadBtn"), configFile: $("configFile"),
   generateBtn: $("generateBtn"),
   forgeProgress: $("forgeProgress"), progressMsg: $("progressMsg"),
   progressFill: $("progressFill"), forgeLog: $("forgeLog"),
@@ -322,11 +323,109 @@ els.previewBtn.addEventListener("click", async () => {
     });
     if (!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
-    els.captionPreview.value = data.caption || "(提示词为空:请填写自由描述,或切换到参数模式选择)";
+    const caption = data.caption || "(提示词为空:请填写自由描述,或切换到参数模式选择)";
+    const lyrics = (data.lyrics || "").trim();
+    els.captionPreview.value = lyrics
+      ? `—— 音乐描述(送入 prompt)——\n${caption}\n\n—— 歌词(送入 lyrics)——\n${lyrics}`
+      : caption + "\n\n(歌词为空:请在左侧填写歌词,纯器乐也需要段落标签)";
   } catch (e) {
     els.captionPreview.value = "预览失败: " + e.message;
   }
 });
+
+/* ── 配置保存与导入 ── */
+
+const CONFIG_SCHEMA = 1;
+
+els.saveBtn.addEventListener("click", () => {
+  const data = {
+    app: "minimax-music3-workspace-zhCN",
+    schema: CONFIG_SCHEMA,
+    saved_at: new Date().toISOString(),
+    params: payload(),
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const ts = new Date().toISOString().slice(0, 16).replace(/[T:]/g, "-");
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `music-config-${ts}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  log(`配置已导出:歌词 ${data.params.lyrics.length} 字符`);
+});
+
+els.loadBtn.addEventListener("click", () => els.configFile.click());
+
+els.configFile.addEventListener("change", () => {
+  const file = els.configFile.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      const params = data && data.params ? data.params : data;
+      if (!params || typeof params !== "object") throw new Error("缺少 params 对象");
+      applyParams(params);
+      log(`配置已导入:${file.name}`);
+    } catch (e) {
+      alert("导入失败:" + e.message);
+    } finally {
+      els.configFile.value = "";
+    }
+  };
+  reader.onerror = () => {
+    alert("读取文件失败");
+    els.configFile.value = "";
+  };
+  reader.readAsText(file, "utf-8");
+});
+
+function setSel(el, value) {
+  if (value === undefined || value === null) return;
+  const hit = Array.from(el.options).some((o) => o.value === value);
+  if (hit) el.value = value;
+  else if (value !== "(不指定)") log(`「${el.id}」的选项「${value}」在当前选项库中不存在,已保留原值`);
+}
+
+function applyParams(p) {
+  const wantMode = p.prompt_mode === "简单描述" ? "简单描述" : "结构化参数";
+  const btn = document.querySelector(`.mode-btn[data-mode="${wantMode}"]`);
+  if (btn) btn.click();
+
+  els.simplePrompt.value = p.simple_prompt || "";
+  setSel(els.genre, p.genre);
+  els.subgenre.value = p.subgenre || "";
+  els.bpmAuto.checked = !!p.bpm_auto;
+  els.bpm.disabled = els.bpmAuto.checked;
+  if (p.bpm !== undefined) { els.bpm.value = p.bpm; els.bpm.dispatchEvent(new Event("input")); }
+  setSel(els.key, p.key);
+  setSel(els.scale, p.scale);
+  setSel(els.emotionalArc, p.emotional_arc);
+  setSel(els.scenario, p.scenario);
+  setSel(els.production, p.production);
+  setSel(els.vocalGender, p.vocal_gender);
+  setSel(els.timbre, p.timbre);
+  setSel(els.register, p.register);
+  setSel(els.delivery, p.delivery);
+  setSel(els.harmony, p.harmony);
+  setSel(els.backingVocals, p.backing_vocals);
+  setSel(els.vocalEffect, p.vocal_effect);
+  setChecks(els.primaryInstruments, p.primary_instruments || []);
+  setChecks(els.secondaryInstruments, p.secondary_instruments || []);
+  setSel(els.groove, p.groove);
+  setSel(els.bass, p.bass);
+  setSel(els.percussion, p.percussion);
+  setChecks(els.textures, p.textures || []);
+  setSel(els.spatial, p.spatial);
+  els.arrangementNotes.value = p.arrangement_notes || "";
+  els.lyrics.value = p.lyrics !== undefined ? p.lyrics : els.lyrics.value;
+  if (p.audio_duration !== undefined) { els.audioDuration.value = p.audio_duration; els.audioDuration.dispatchEvent(new Event("input")); }
+  if (p.num_inference_steps !== undefined) { els.numInferenceSteps.value = p.num_inference_steps; els.numInferenceSteps.dispatchEvent(new Event("input")); }
+  if (p.seed !== undefined) els.seed.value = p.seed;
+  if (p.vram_mode !== undefined) els.vramMode.value = p.vram_mode;
+  updateCounts();
+}
 
 /* ── 生成(SSE) ── */
 

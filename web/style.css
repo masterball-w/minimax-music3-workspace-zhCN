@@ -492,6 +492,13 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--gold-bright); ou
 }
 .btn-ghost:hover { background: rgba(168, 132, 44, .16); border-color: var(--gold); }
 
+/* ── 配置保存/导入按钮组 ── */
+.config-io {
+  display: flex; gap: 10px;
+  margin: 4px 0;
+}
+.config-io .btn-ghost { flex: 1; }
+
 .btn-seal {
   width: 100%;
   margin: 6px 0 14px;

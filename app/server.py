@@ -168,7 +168,7 @@ def generate(payload: dict):
             emit(None)
 
     def stream():
-        emit({"type": "log", "message": f"提示词组装完成,caption {len(caption)} 字符"})
+        emit({"type": "log", "message": f"提示词组装完成:音乐描述 {len(caption)} 字符,歌词 {len(lyrics)} 字符"})
         threading.Thread(target=worker, daemon=True).start()
         while True:
             item = q.get()
