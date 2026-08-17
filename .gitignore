@@ -1,0 +1,18 @@
+# 虚拟环境与模型权重(体积过大,不入库)
+.venv/
+models/
+
+# diffusers 上游源码(tarball 与解压目录)
+research/diffusers-dafe3733fcfdbf3c48915fe77be3aef65b5d6a2d/
+research/diffusers-src/
+research/diffusers-pr.tar.gz
+
+# Python 运行产物
+__pycache__/
+*.pyc
+*.pyo
+
+# 系统与编辑器
+Thumbs.db
+Desktop.ini
+.DS_Store

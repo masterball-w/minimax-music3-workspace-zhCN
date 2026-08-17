@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MiniMax Music 3 · 音乐生成工作台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- ══════════ 通用装饰(角部卷草) ══════════ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="orn-corner" viewBox="0 0 48 48">
+      <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
+        <path d="M2 14V4c0-1.1.9-2 2-2h10"/>
+        <path d="M6 18V6h12"/>
+        <path d="M14 6c4 0 7 2 8 6 1-4 4-6 8-6"/>
+        <path d="M6 14c0 4 2 7 6 8-4 1-6 4-6 8" opacity=".85"/>
+        <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/>
+      </g>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="vignette" aria-hidden="true"></div>
+
+<!-- ══════════ 页头 ══════════ -->
+<header class="titlepage">
+  <div class="frieze" aria-hidden="true">
+    <img class="fri fri-l" src="/static/assets/flute-ink.svg" alt="">
+    <img class="fri fri-s" src="/static/assets/note-ink.svg" alt="">
+    <img class="fri fri-l" src="/static/assets/violin-ink.svg" alt="">
+    <img class="fri fri-s" src="/static/assets/notes-ink.svg" alt="">
+    <img class="fri fri-xl" src="/static/assets/clef-ink.svg" alt="">
+    <img class="fri fri-l" src="/static/assets/trumpet-ink.svg" alt="">
+    <img class="fri fri-s" src="/static/assets/note-ink.svg" alt="">
+    <img class="fri fri-l" src="/static/assets/harp-ink.svg" alt="">
+    <img class="fri fri-s" src="/static/assets/notes-ink.svg" alt="">
+    <img class="fri fri-l" src="/static/assets/piano-ink.svg" alt="">
+    <img class="fri fri-s" src="/static/assets/note-ink.svg" alt="">
+    <img class="fri fri-l" src="/static/assets/drum-ink.svg" alt="">
+    <img class="fri fri-s" src="/static/assets/pipe-organ-ink.svg" alt="">
+  </div>
+  <p class="motto">本地部署 · 全参数音乐生成工作台</p>
+  <h1 class="main-title">MiniMax&nbsp;Music&nbsp;3</h1>
+  <p class="sub-title">音乐生成工作台 · 巴洛克界面</p>
+  <div class="title-divider" aria-hidden="true">
+    <span class="rule"></span>
+    <img src="/static/assets/notes-gold.svg" alt="">
+    <span class="rule"></span>
+  </div>
+  <p class="epigraph">在本地显卡上运行 80 亿参数的音乐生成模型:自定风格、速度、调性、人声与歌词,生成最长 6 分钟的 44.1kHz 立体声歌曲。</p>
+</header>
+
+<main class="layout">
+
+  <!-- ══════════ 歌词 ══════════ -->
+  <section class="panel panel-lyrics">
+    <svg class="corner c-tl" aria-hidden="true"><use href="#orn-corner"/></svg>
+    <svg class="corner c-tr" aria-hidden="true"><use href="#orn-corner"/></svg>
+    <svg class="corner c-bl" aria-hidden="true"><use href="#orn-corner"/></svg>
+    <svg class="corner c-br" aria-hidden="true"><use href="#orn-corner"/></svg>
+
+    <header class="panel-head">
+      <img class="head-ico" src="/static/assets/clef-burgundy.svg" alt="">
+      <div>
+        <p class="movement">Lyrics</p>
+        <h2>歌词</h2>
+      </div>
+      <img class="head-ico small" src="/static/assets/note-gold.svg" alt="">
+    </header>
+
+    <p class="hint">段落标签(如 <code>[Verse]</code>、<code>[Chorus]</code>)必须单独占一行,写在标签同一行的文字会被忽略。</p>
+
+    <label class="field-label" for="structure">插入常用曲式结构</label>
+    <select id="structure" class="input"></select>
+
+    <div class="tag-row" id="tagRow"></div>
+
+    <label class="field-label" for="lyrics">歌词内容</label>
+    <div class="manuscript">
+      <img class="clef-mark" src="/static/assets/clef-ink.svg" alt="" aria-hidden="true">
+      <textarea id="lyrics" class="lyrics-input" rows="14" spellcheck="false"></textarea>
+    </div>
+
+    <div class="orn-line" aria-hidden="true">
+      <span class="rule"></span>
+      <img src="/static/assets/clef-gold.svg" alt="">
+      <span class="rule"></span>
+    </div>
+    <p class="hint dim">歌词支持中文和英文,用标签划分歌曲段落,例如 <code>[Verse]</code> 主歌、<code>[Chorus]</code> 副歌、<code>[Bridge]</code> 桥段。</p>
+  </section>
+
+  <!-- ══════════ 音乐描述 ══════════ -->
+  <section class="panel panel-desc">
+    <svg class="corner c-tl" aria-hidden="true"><use href="#orn-corner"/></svg>
+    <svg class="corner c-tr" aria-hidden="true"><use href="#orn-corner"/></svg>
+    <svg class="corner c-bl" aria-hidden="true"><use href="#orn-corner"/></svg>
+    <svg class="corner c-br" aria-hidden="true"><use href="#orn-corner"/></svg>
+
+    <header class="panel-head">
+      <img class="head-ico" src="/static/assets/piano-burgundy.svg" alt="">
+      <div>
+        <p class="movement">Description</p>
+        <h2>音乐描述</h2>
+      </div>
+      <img class="head-ico small" src="/static/assets/notes-gold.svg" alt="">
+    </header>
+
+    <div class="preset-row">
+      <div class="field grow">
+        <label class="field-label" for="preset">风格预设</label>
+        <select id="preset" class="input"></select>
+      </div>
+      <div class="mode-toggle" role="radiogroup" aria-label="描述模式">
+        <button type="button" class="mode-btn active" data-mode="结构化参数">参数模式</button>
+        <button type="button" class="mode-btn" data-mode="简单描述">自由描述</button>
+      </div>
+    </div>
+
+    <div class="field" id="simpleField" hidden>
+      <label class="field-label" for="simplePrompt">用一句话描述想要的音乐(英文效果最好)</label>
+      <textarea id="simplePrompt" class="input" rows="3" placeholder="例如:A warm acoustic pop song with intimate female vocals, fingerpicked guitar and a gradual build into a wide chorus."></textarea>
+    </div>
+
+    <div id="structuredBody">
+
+      <details class="chapter" open>
+        <summary>
+          <img class="head-ico tiny" src="/static/assets/violin-burgundy.svg" alt="">
+          <span>整体风格</span>
+          <svg class="expand-mark" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </summary>
+        <div class="chapter-body">
+          <div class="grid-2">
+            <div class="field">
+              <label class="field-label" for="genre">流派</label>
+              <select id="genre" class="input"></select>
+            </div>
+            <div class="field">
+              <label class="field-label" for="subgenre">细分风格(可自由填写)</label>
+              <input id="subgenre" class="input" type="text" placeholder="dream pop / trap / 古风">
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label class="field-label">速度 BPM <output id="bpmVal">100</output></label>
+              <input id="bpm" type="range" min="40" max="220" step="1" value="100" class="range">
+              <label class="check-inline"><input type="checkbox" id="bpmAuto"> 自动</label>
+            </div>
+            <div class="field">
+              <label class="field-label" for="key">调性 / 音阶</label>
+              <div class="pair">
+                <select id="key" class="input"></select>
+                <select id="scale" class="input"></select>
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="emotionalArc">情绪走向</label>
+            <select id="emotionalArc" class="input"></select>
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label class="field-label" for="scenario">适用场景</label>
+              <select id="scenario" class="input"></select>
+            </div>
+            <div class="field">
+              <label class="field-label" for="production">制作质感</label>
+              <select id="production" class="input"></select>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="chapter" open>
+        <summary>
+          <img class="head-ico tiny" src="/static/assets/lyre-burgundy.svg" alt="">
+          <span>人声</span>
+          <svg class="expand-mark" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </summary>
+        <div class="chapter-body">
+          <div class="grid-2">
+            <div class="field">
+              <label class="field-label" for="vocalGender">人声类型</label>
+              <select id="vocalGender" class="input"></select>
+            </div>
+            <div class="field">
+              <label class="field-label" for="timbre">音色</label>
+              <select id="timbre" class="input"></select>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label class="field-label" for="register">音域</label>
+              <select id="register" class="input"></select>
+            </div>
+            <div class="field">
+              <label class="field-label" for="delivery">演唱风格</label>
+              <select id="delivery" class="input"></select>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label class="field-label" for="harmony">和声</label>
+              <select id="harmony" class="input"></select>
+            </div>
+            <div class="field">
+              <label class="field-label" for="backingVocals">伴唱</label>
+              <select id="backingVocals" class="input"></select>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="vocalEffect">人声效果</label>
+            <select id="vocalEffect" class="input"></select>
+          </div>
+        </div>
+      </details>
+
+      <details class="chapter" open>
+        <summary>
+          <img class="head-ico tiny" src="/static/assets/pipe-organ-burgundy.svg" alt="">
+          <span>乐器与编曲</span>
+          <svg class="expand-mark" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </summary>
+        <div class="chapter-body">
+          <div class="field">
+            <label class="field-label">主要乐器 <span class="pick-count" id="primaryCount">未选择</span></label>
+            <div class="check-grid" id="primaryInstruments"></div>
+          </div>
+          <div class="field">
+            <label class="field-label">伴奏与色彩乐器 <span class="pick-count" id="secondaryCount">未选择</span></label>
+            <div class="check-grid" id="secondaryInstruments"></div>
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label class="field-label" for="groove">律动</label>
+              <select id="groove" class="input"></select>
+            </div>
+            <div class="field">
+              <label class="field-label" for="bass">贝斯</label>
+              <select id="bass" class="input"></select>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label class="field-label" for="percussion">打击乐</label>
+              <select id="percussion" class="input"></select>
+            </div>
+            <div class="field">
+              <label class="field-label" for="spatial">空间效果</label>
+              <select id="spatial" class="input"></select>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label">音色质感</label>
+            <div class="check-grid" id="textures"></div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="arrangementNotes">逐段编曲说明(可选)</label>
+            <textarea id="arrangementNotes" class="input" rows="2" placeholder="例如:前奏只用钢琴,主歌加入指弹吉他,副歌全乐队进入,桥段只保留弦乐。"></textarea>
+          </div>
+        </div>
+      </details>
+
+    </div>
+  </section>
+
+  <!-- ══════════ 生成与播放 ══════════ -->
+  <section class="panel panel-forge">
+    <svg class="corner c-tl" aria-hidden="true"><use href="#orn-corner"/></svg>
+    <svg class="corner c-tr" aria-hidden="true"><use href="#orn-corner"/></svg>
+    <svg class="corner c-bl" aria-hidden="true"><use href="#orn-corner"/></svg>
+    <svg class="corner c-br" aria-hidden="true"><use href="#orn-corner"/></svg>
+
+    <header class="panel-head">
+      <img class="head-ico" src="/static/assets/drum-burgundy.svg" alt="">
+      <div>
+        <p class="movement">Generation</p>
+        <h2>生成与播放</h2>
+      </div>
+      <img class="head-ico small" src="/static/assets/notes-gold.svg" alt="">
+    </header>
+
+    <div class="grid-2 tight">
+      <div class="field">
+        <label class="field-label">时长(秒) <output id="durVal">60</output></label>
+        <input id="audioDuration" type="range" min="10" max="360" step="5" value="60" class="range">
+      </div>
+      <div class="field">
+        <label class="field-label">Flow Matching 步数 <output id="stepsVal">30</output></label>
+        <input id="numInferenceSteps" type="range" min="10" max="60" step="1" value="30" class="range">
+      </div>
+    </div>
+    <div class="grid-2 tight">
+      <div class="field">
+        <label class="field-label" for="seed">随机种子(-1 表示随机)</label>
+        <input id="seed" class="input" type="number" value="-1">
+      </div>
+      <div class="field">
+        <label class="field-label" for="vramMode">显存模式</label>
+        <select id="vramMode" class="input">
+          <option value="low" selected>低显存(12GB,速度较慢)</option>
+          <option value="standard">标准(需要 22GB 以上)</option>
+        </select>
+      </div>
+    </div>
+
+    <button id="previewBtn" class="btn btn-ghost" type="button">
+      <img class="btn-ico" src="/static/assets/clef-gold.svg" alt="">
+      预览提示词
+    </button>
+
+    <div class="field">
+      <label class="field-label" for="captionPreview">最终提示词(提交给模型的 Caption)</label>
+      <textarea id="captionPreview" class="caption-view" rows="9" readonly></textarea>
+    </div>
+
+    <button id="generateBtn" class="btn btn-seal" type="button">
+      <img class="seal-mark" src="/static/assets/notes-gold.svg" alt="">
+      <span class="seal-text">生成音乐</span>
+      <span class="seal-sub">Generate</span>
+    </button>
+
+    <div class="forge-progress" id="forgeProgress" hidden>
+      <div class="progress-head">
+        <img class="spin-ico" src="/static/assets/notes-burgundy.svg" alt="">
+        <span id="progressMsg">准备中</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <pre class="forge-log" id="forgeLog"></pre>
+    </div>
+
+    <div class="orn-line" aria-hidden="true">
+      <span class="rule"></span>
+      <img src="/static/assets/note-gold.svg" alt="">
+      <span class="rule"></span>
+    </div>
+
+    <div class="field">
+      <label class="field-label">生成结果</label>
+      <audio id="player" class="player" controls></audio>
+      <p class="hint dim result-meta-line" id="resultMeta"></p>
+    </div>
+
+    <div class="field">
+      <label class="field-label">历史作品 <span class="pick-count" id="outputsCount"></span></label>
+      <ul class="archive" id="archive"></ul>
+    </div>
+  </section>
+</main>
+
+<footer class="colophon">
+  <div class="title-divider" aria-hidden="true">
+    <span class="rule"></span>
+    <img src="/static/assets/clef-gold.svg" alt="">
+    <span class="rule"></span>
+  </div>
+  <p>模型 MiniMaxAI / MiniMax-Music3 · 80 亿参数 · 输出 44.1kHz、16bit 立体声</p>
+  <p class="dim">全部推理在本地完成,数据不上传云端。</p>
+</footer>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
